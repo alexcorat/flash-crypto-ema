@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Flash Crypto Ema</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c10; --card:#10131a; --text:#e6e9ef; --muted:#9aa4b2;
+    --brand1:#6a5cff; --brand2:#12e1ff; --ok:#00e676; --warn:#ffb74d; --err:#ff5252;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',sans-serif;background:radial-gradient(1200px 800px at 20% -10%, #141a2b 0%, #0a0c10 60%);color:var(--text)}
+  header{padding:1.2rem 1rem 1.6rem;text-align:center;background:linear-gradient(90deg,rgba(18,225,255,.06),rgba(106,92,255,.06));border-bottom:1px solid rgba(255,255,255,.06)}
+  header h1{margin:.2rem 0 .4rem;font-size:2rem;color:#fff;text-shadow:0 0 6px rgba(18,225,255,.8),0 0 18px rgba(106,92,255,.7),0 0 36px rgba(106,92,255,.35)}
+  header p{margin:0;color:var(--muted)}
+  .auth,.wallet{max-width:1000px;margin:1rem auto;padding:1.2rem;background:var(--card);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04)}
+  input,button{width:100%;padding:.9rem;margin:.45rem 0;border-radius:12px;border:1px solid rgba(255,255,255,.08);font-size:1rem;background:#0f1320;color:var(--text)}
+  button{border:none;cursor:pointer;font-weight:700;background:linear-gradient(90deg,var(--brand1),var(--brand2));box-shadow:0 0 14px rgba(18,225,255,.35), 0 0 30px rgba(106,92,255,.25);transition:transform .12s, box-shadow .2s, filter .2s}
+  button:hover{transform:translateY(-1px);filter:saturate(1.08);box-shadow:0 0 18px rgba(18,225,255,.55),0 0 40px rgba(106,92,255,.38)}
+  .marquee{overflow:hidden;white-space:nowrap;background:#000;color:#fff;padding:.5rem;border-radius:10px;margin:1rem auto;max-width:1000px;border:1px solid rgba(255,255,255,.1)}
+  .marquee span{display:inline-block;padding-left:100%;animation:marq 15s linear infinite}
+  @keyframes marq{0%{transform:translate(0,0)}100%{transform:translate(-100%,0)}}
+  nav{display:flex;flex-wrap:wrap;gap:.5rem;margin:.6rem 0}
+  nav button{flex:1;min-width:120px;padding:.7rem;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:.5rem;background:#0f1320;border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 0 18px rgba(18,225,255,.08)}
+  nav button.active{background:linear-gradient(90deg,rgba(106,92,255,.25),rgba(18,225,255,.25));border-color:rgba(18,225,255,.45);box-shadow:0 0 16px rgba(18,225,255,.35), inset 0 0 22px rgba(106,92,255,.2);transform:scale(1.03)}
+  .balance{background:linear-gradient(135deg,rgba(30,60,114,.6),rgba(42,82,152,.6));color:#fff;padding:1rem;border-radius:16px;margin:1rem 0;box-shadow:0 12px 28px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.06)}
+  .amt{font-size:1.7rem;font-weight:800}.crypto{font-size:.95rem;opacity:.9}
+  .logout{background:linear-gradient(90deg,#ff5252,#ff1744);box-shadow:0 0 18px rgba(255,23,68,.35)}
+  .pass-wrapper{position:relative}.show-pass-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:1px solid rgba(255,255,255,.15);padding:.25rem .45rem;border-radius:8px}
+  #toast{position:fixed;top:20px;right:20px;z-index:9999}
+  .toast{background:#111;color:#fff;padding:10px 20px;margin-top:10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);opacity:0;transform:translateX(100%);transition:all .35s;box-shadow:0 14px 30px rgba(0,0,0,.35)}
+  .toast.show{opacity:1;transform:translateX(0)}.toast.success{border-color:rgba(0,230,118,.4)}.toast.error{border-color:rgba(255,82,82,.4)}
+  .share-btn{width:auto;padding:.7rem 1.2rem;border-radius:10px;background:linear-gradient(90deg,#00e676,#12e1ff)}
+  small.note{color:var(--muted)}
+
+  /* Glider (amount picker) */
+  .glider{
+    display:flex; gap:.6rem; overflow-x:auto; padding:.4rem;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+    border:1px solid rgba(255,255,255,.08); border-radius:14px; background:#0b1320;
+  }
+  .glide-item{
+    flex:0 0 auto; min-width:180px; text-align:center; font-weight:800;
+    padding:.9rem 1rem; border-radius:999px; scroll-snap-align:center;
+    background:#0f1320; border:1px solid rgba(255,255,255,.08);
+    box-shadow:inset 0 0 18px rgba(18,225,255,.08);
+    user-select:none; cursor:pointer; transition:transform .12s, box-shadow .2s, border-color .2s;
+  }
+  .glide-item:hover{ transform:translateY(-1px); box-shadow:0 0 16px rgba(18,225,255,.22) }
+  .glide-item.active{
+    border-color:rgba(18,225,255,.55);
+    background:linear-gradient(90deg,rgba(106,92,255,.25),rgba(18,225,255,.25));
+    box-shadow:0 0 18px rgba(18,225,255,.35), inset 0 0 22px rgba(106,92,255,.2);
+  }
+  .glider::-webkit-scrollbar{height:8px}
+  .glider::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
+
+  /* Inline Liquidity Banner (inside LQUIT card) */
+  .liq-inline-banner{
+    margin:.6rem 0 .4rem; padding:.65rem .9rem;
+    background:#000; color:#e6e9ef; border-radius:12px;
+    border:1px solid rgba(18,225,255,.25);
+    box-shadow:inset 0 0 18px rgba(18,225,255,.08);
+    font-weight:600; line-height:1.4
+  }
+  .liq-inline-banner b{color:#fff; text-shadow:0 0 12px rgba(18,225,255,.25)}
+  .liq-inline-banner .note{color:#9aa4b2}
+
+  /* Dashboard */
+  .dash-wrap{position:relative;overflow:hidden;border-radius:16px;border:1px solid rgba(255,255,255,.06);background:#0b0f18;min-height:320px}
+  #geoCanvas{display:block;width:100%;height:280px}
+  .dash-stats{display:flex;gap:1rem;flex-wrap:wrap;padding:1rem}
+  .kpi{flex:1;min-width:220px;background:#0f1320;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:1rem}
+  .kpi h4{margin:.2rem 0 .6rem;color:#a8b3c7;font-weight:600}
+  .kpi .big{font-size:2.2rem;font-weight:800;letter-spacing:.5px;text-shadow:0 0 14px rgba(18,225,255,.25)}
+  .kpi .sub{font-size:.9rem;color:#9aa4b2}
+
+  /* Transactions list */
+  .tx-list{display:flex;flex-direction:column;gap:.6rem}
+  .tx-card{
+    background:#0f1320; border:1px solid rgba(255,255,255,.08); border-left:4px solid #4fc3f7;
+    border-radius:12px; padding:.8rem 1rem; display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap;
+  }
+  .tx-card.deposit{border-left-color:#00e676}
+  .tx-card.hash{border-left-color:#29b6f6}
+  .tx-card.activate{border-left-color:#b388ff}
+  .tx-card.withdraw{border-left-color:#ff7043}
+  .tx-card.auth{border-left-color:#64b5f6}
+  .tx-card.misc{border-left-color:#ffd54f}
+  .tx-meta{color:#9aa4b2; font-size:.86rem}
+  .tx-amount{font-weight:800}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Flash Crypto Ema</h1>
+  <p>Alcatraz Premium Flashers</p>
+</header>
+
+<div class="marquee"><span id="priceTicker">Loading real-time prices…</span></div>
+
+<!-- Auth -->
+<div id="auth" class="auth">
+  <h2>Sign In / Sign Up</h2>
+  <input id="email" placeholder="Email">
+  <div class="pass-wrapper">
+    <input type="password" id="password" placeholder="Password">
+    <button type="button" class="show-pass-btn" id="togglePass">👁️</button>
+  </div>
+  <div style="background:#07122b;padding:.9rem;border-radius:12px;margin:.5rem 0;color:#a5d7ff;font-weight:600;text-align:center;border:1px solid rgba(18,225,255,.25);">
+    🎉 Create account & get <b>$100,000 credited</b> instantly!
+  </div>
+  <button id="signIn">Sign In</button>
+  <button id="signUp">Create Account</button>
+</div>
+
+<!-- Wallet -->
+<div id="wallet" class="wallet" style="display:none">
+  <h2>Hello, <span id="userEmail"></span></h2>
+
+  <div class="balance">
+    <div class="amt" id="balanceAmt">$0</div>
+    <div class="crypto" id="cryptoAmt">≈0 BTC • 0 ETH</div>
+    <small class="note">Rates auto-refresh every 60s</small>
+  </div>
+
+  <div style="text-align:center;margin:1rem 0;">
+    <button class="share-btn" id="btnShare">🔗 Share Referral Link</button>
+  </div>
+
+  <nav id="tabs">
+    <button data-tab="dashboard" class="active">📊 Dashboard</button>
+    <button data-tab="deposit">💰 Deposit</button>
+    <button data-tab="withdraw">🏦 Withdraw</button>
+    <button data-tab="lquitv2">🧪 LQUIT V2</button>
+    <button data-tab="tx">📑 Transactions</button>
+    <button data-tab="notif">🔔 Notifications</button>
+    <button data-tab="profile">🙍 Profile</button>
+  </nav>
+
+  <div id="tabContent" class="tab"></div>
+  <button class="logout" id="logout">Sign Out</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ====== Deposit Addresses (your real addresses) ====== */
+const DEPOSIT_ADDR = {
+  BTC: "1G2hbY1JT9qrWZgUJzDqUQ2SKcoXpKgHsF",
+  BNB: "0x251F2B48A1b4fb1c952817C8595849424DC92431",
+  USDT_TRON: "TJ4A7Yd4KPSbNrtwfywwvu6AiWkGAggSPW",
+  SOL: "8jEHrnB9KyPLtXNCBF3bzND12xSSRJbDar9idNQa3avx"
+};
+
+/* ================== App State ================== */
+const state = {
+  user: null,
+  balance: 100000,
+  BTC_RATE: 50000,
+  ETH_RATE: 3800,
+  prices: {BTC:50000, ETH:3800, BNB:420, SOL:150, USDT:1.00},
+  priceStrings: ["Loading…"],
+  referralLink: "",
+  liq: { active:false, amount:0, start:0, hash:null, timer:null },
+  net: { mbps:null, tier:'Unknown', range:[80,120] },
+  txLog: [],       // [{id, timeISO, type, title, details, amount, hash, meta}]
+  notif: []        // array of HTML-safe strings
+};
+
+/* ================== Helpers ================== */
+const $  = (s,root=document)=>root.querySelector(s);
+const $$ = (s,root=document)=>root.querySelectorAll(s);
+const nowISO = () => new Date().toISOString();
+function toast(msg,type=""){const t=document.createElement("div");t.className=`toast ${type}`;t.textContent=msg;$("#toast").appendChild(t);setTimeout(()=>t.classList.add("show"),80);setTimeout(()=>t.remove(),4200);}
+function fmt(n,fd=0){ return Number(n).toLocaleString(undefined,{maximumFractionDigits:fd}); }
+function clamp(n,min,max){return Math.max(min,Math.min(max,n));}
+function formatRemain(ms){
+  const hrs = Math.floor(ms/3_600_000);
+  const mins = Math.floor((ms%3_600_000)/60_000);
+  const secs = Math.floor((ms%60_000)/1000);
+  return `${hrs}h ${mins}m ${secs}s`;
+}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));}
+
+/* ---------- Activity Logging ---------- */
+function logTx({type='misc', title='', details='', amount=null, hash=null, meta=null}={}){
+  const entry = {
+    id: 'tx_'+Math.random().toString(36).slice(2),
+    timeISO: nowISO(),
+    type, title, details,
+    amount, hash, meta
+  };
+  state.txLog.unshift(entry);  // newest first
+  const summary = [
+    `<b>${escapeHTML(title||type.toUpperCase())}</b>`,
+    amount!=null ? `• Amount: $${fmt(amount)}` : '',
+    hash ? `• Hash: <span class="mono">${escapeHTML(hash)}</span>` : '',
+    meta ? `• ${escapeHTML(meta)}` : ''
+  ].filter(Boolean).join(' ');
+  state.notif.unshift(`${new Date(entry.timeISO).toLocaleString()} — ${summary}`);
+}
+
+/* ================== Auth (localStorage) ================== */
+function saveUser(u){ localStorage.setItem("fce_user", JSON.stringify(u)); }
+function loadUser(){ try{ return JSON.parse(localStorage.getItem("fce_user")||"null"); }catch{ return null; } }
+function doSignin(email){
+  state.user={email}; saveUser(state.user);
+  $("#userEmail").textContent=email;
+  $("#auth").style.display="none"; $("#wallet").style.display="block";
+  activateTab("dashboard");
+  logTx({type:'auth', title:'Sign In', details:'User signed in', meta:email});
+}
+function doSignout(){
+  logTx({type:'auth', title:'Sign Out', details:'User signed out', meta:state.user?.email||''});
+  state.user=null; localStorage.removeItem("fce_user");
+  $("#auth").style.display="block"; $("#wallet").style.display="none";
+}
+function setReferralLink(email){ const code=btoa(email).replace(/=/g,""); state.referralLink=`${location.origin}${location.pathname}?ref=${code}`; }
+
+/* ================== UI Init ================== */
+function updateBalanceUI(){
+  $("#balanceAmt").textContent = `$${state.balance.toLocaleString()}`;
+  $("#cryptoAmt").textContent = `≈ ${(state.balance/state.BTC_RATE).toFixed(6)} BTC • ${(state.balance/state.ETH_RATE).toFixed(4)} ETH`;
+}
+function wireAuthButtons(){
+  $("#togglePass").addEventListener("click",(e)=>{e.preventDefault(); const p=$("#password"); p.type=p.type==="password"?"text":"password";});
+  $("#signUp").addEventListener("click",()=>{
+    const email=$("#email").value.trim(), pass=$("#password").value.trim();
+    if(!email||!pass){toast("Enter email & password","error");return;}
+    if(pass.length<6){toast("Password must be at least 6 characters","error");return;}
+    setReferralLink(email);
+    doSignin(email);
+    toast("🎉 Account created!","success");
+    logTx({type:'auth', title:'Sign Up', details:'New account created', meta:email});
+  });
+  $("#signIn").addEventListener("click",()=>{
+    const email=$("#email").value.trim(), pass=$("#password").value.trim();
+    if(!email||!pass){toast("Enter email & password","error");return;}
+    setReferralLink(email);
+    doSignin(email);
+    toast("✅ Signed in","success");
+  });
+  $("#logout").addEventListener("click",()=>{ doSignout(); toast("Signed out","success"); });
+  $("#btnShare").addEventListener("click",()=>{
+    navigator.clipboard.writeText(state.referralLink);
+    toast("Referral link copied","success");
+    logTx({type:'misc', title:'Referral Copied', details:'Copied referral link', meta:state.referralLink});
+  });
+}
+
+/* ================== Tabs ================== */
+function activateTab(tab){
+  $$("#tabs button").forEach(b=>b.classList.remove("active"));
+  const btn=$(`#tabs button[data-tab="${tab}"]`); if(btn) btn.classList.add("active");
+  renderTab(tab);
+}
+
+/* ================== Dashboard (tokens + FLASH explosion) ================== */
+function renderDashboard(){
+  const tc=$("#tabContent");
+  tc.innerHTML=`
+    <div class="dash-wrap">
+      <canvas id="geoCanvas"></canvas>
+      <div class="dash-stats">
+        <div class="kpi"><h4>Online Users</h4><div class="big" id="onlineNow">--</div><div class="sub">Live connections</div></div>
+        <div class="kpi"><h4>24h Peak</h4><div class="big" id="peak24">--</div><div class="sub">Highest concurrent</div></div>
+        <div class="kpi"><h4>Avg Session</h4><div class="big" id="avgSess">--</div><div class="sub">Past ~1h</div></div>
+      </div>
+    </div>`;
+  startGeoAnimation();
+  startOnlineCounter();
+}
+let geoAnim, onlineTicker;
+let onlineCount = Math.floor(200 + Math.random()*250);
+let onlinePeak24h = onlineCount;
+let avgSessionMin = 12;
+
+function startOnlineCounter(){
+  function tick(){
+    const d=Math.floor(-8+Math.random()*20);
+    onlineCount=Math.max(50,onlineCount+d);
+    onlinePeak24h=Math.max(onlinePeak24h,onlineCount);
+    avgSessionMin=Math.max(5,Math.min(22,avgSessionMin+(Math.random()<.5?-1:1)));
+    const n=$("#onlineNow"),p=$("#peak24"),a=$("#avgSess");
+    if(n) n.textContent=fmt(onlineCount); if(p) p.textContent=fmt(onlinePeak24h); if(a) a.textContent=fmt(avgSessionMin)+'m';
+  }
+  tick(); if(onlineTicker) clearInterval(onlineTicker); onlineTicker=setInterval(tick,2000+Math.random()*2000);
+}
+function stopDashboard(){ if(geoAnim) cancelAnimationFrame(geoAnim); if(onlineTicker) clearInterval(onlineTicker); }
+function encodeSVG(svg){ return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg.replace(/\s+/g,' ')); }
+const SVGs = {
+  BTC: encodeSVG(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='#f7931a'/><text x='50' y='56' text-anchor='middle' font-family='Inter,system-ui' font-weight='900' font-size='54' fill='#fff'>₿</text></svg>`),
+  USDT: encodeSVG(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='#26a17b'/><rect x='12' y='42' width='76' height='12' fill='#fff' rx='6'/><rect x='46' y='20' width='8' height='58' fill='#fff' rx='4'/></svg>`),
+  BNB: encodeSVG(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='#f3ba2f'/><g fill='none' stroke='#0b0b0b' stroke-width='6' stroke-linejoin='round'><path d='M50 18 82 50 50 82 18 50 50 18Z'/><path d='M50 32 68 50 50 68 32 50 50 32Z'/></g></svg>`),
+  SOL: encodeSVG(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='#0d0f17'/><defs><linearGradient id='g' x1='0' y1='1' x2='1' y2='0'><stop offset='0' stop-color='#14f195'/><stop offset='1' stop-color='#80ecff'/></linearGradient></defs><g transform='rotate(-7 50 50)'><rect x='18' y='30' width='64' height='12' rx='6' fill='url(#g)'/><rect x='18' y='44' width='64' height='12' rx='6' fill='url(#g)'/><rect x='18' y='58' width='64' height='12' rx='6' fill='url(#g)'/></g></svg>`)
+};
+function startGeoAnimation(){
+  const c=$("#geoCanvas"), ctx=c.getContext('2d'), parent=c.parentElement;
+  function resize(){ c.width=parent.clientWidth; c.height=280; } resize(); addEventListener('resize',resize);
+  const imgs={}; const load=(k,src)=>new Promise(r=>{const im=new Image(); im.onload=()=>r(imgs[k]=im); im.src=src;});
+  Promise.all([load('BTC',SVGs.BTC),load('USDT',SVGs.USDT),load('BNB',SVGs.BNB),load('SOL',SVGs.SOL)]).then(run);
+  function run(){
+    const syms=['BTC','USDT','BNB','SOL'], tokens=[], N=22;
+    for(let i=0;i<N;i++){ const s=syms[i%syms.length];
+      tokens.push({sym:s,x:Math.random()*c.width,y:Math.random()*c.height,vx:(Math.random()*1.1+0.35)*(Math.random()<.5?-1:1),vy:(Math.random()*1.1+0.35)*(Math.random()<.5?-1:1),r:Math.random()*14+26});
+    }
+    const parts=[], flashes=[];
+    function boom(x,y,n=48){ for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, sp=Math.random()*3.8+1.4; parts.push({x,y,px:x,py:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:56+Math.floor(Math.random()*26),r:1+Math.random()*2.4}); } flashes.push({x,y,life:36});}
+    function draw(t){
+      ctx.save(); ctx.translate(t.x,t.y);
+      ctx.shadowColor='#12e1ff'; ctx.shadowBlur=20; ctx.beginPath(); ctx.arc(0,0,t.r,0,Math.PI*2); ctx.fillStyle='rgba(18,225,255,0.15)'; ctx.fill();
+      ctx.shadowBlur=0; ctx.beginPath(); ctx.arc(0,0,t.r*0.98,0,Math.PI*2); ctx.fillStyle='rgba(12,14,22,0.35)'; ctx.fill();
+      const sz=t.r*1.55, im=imgs[t.sym]; if(im) ctx.drawImage(im,-sz/2,-sz/2,sz,sz);
+      ctx.restore();
+    }
+    (function loop(){
+      ctx.clearRect(0,0,c.width,c.height);
+      const g=ctx.createLinearGradient(0,0,c.width,c.height); g.addColorStop(0,'rgba(18,225,255,0.08)'); g.addColorStop(1,'rgba(106,92,255,0.06)'); ctx.fillStyle=g; ctx.fillRect(0,0,c.width,c.height);
+      for(const t of tokens){ t.x+=t.vx; t.y+=t.vy; if(t.x-t.r<0||t.x+t.r>c.width) t.vx*=-1; if(t.y-t.r<0||t.y+t.r>c.height) t.vy*=-1; }
+      for(let i=0;i<tokens.length;i++) for(let j=i+1;j<tokens.length;j++){ const a=tokens[i],b=tokens[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.hypot(dx,dy),r=a.r+b.r; if(d<r){ const ex=(a.x+b.x)/2,ey=(a.y+b.y)/2; boom(ex,ey); const nx=dx/(d||1),ny=dy/(d||1),push=(r-d)/2; a.x+=nx*push;a.y+=ny*push;b.x-=nx*push;b.y-=ny*push;a.vx*=-1;a.vy*=-1;b.vx*=-1;b.vy*=-1; } }
+      for(const t of tokens) draw(t);
+      for(let k=parts.length-1;k>=0;k--){ const p=parts[k]; ctx.beginPath(); ctx.moveTo(p.px,p.py); ctx.lineTo(p.x,p.y); ctx.strokeStyle=`rgba(255,255,255,${Math.max(0,p.life/70)})`; ctx.lineWidth=1.2; ctx.stroke();
+        ctx.beginPath(); ctx.fillStyle=`rgba(255, ${210+Math.floor(Math.random()*45)}, ${140+Math.floor(Math.random()*75)}, ${Math.max(0,p.life/60)})`; ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+        p.px=p.x; p.py=p.y; p.x+=p.vx; p.y+=p.vy; p.vx*=0.985; p.vy*=0.985; p.life--; if(p.life<=0) parts.splice(k,1); }
+      for(let f=flashes.length-1;f>=0;f--){ const F=flashes[f], a=Math.max(0,F.life/36); ctx.save(); const glow=ctx.createRadialGradient(F.x,F.y,6,F.x,F.y,70); glow.addColorStop(0,`rgba(255,255,255,${0.85*a})`); glow.addColorStop(1,'rgba(18,225,255,0)'); ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(F.x,F.y,70,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=a; ctx.font='900 34px Inter, system-ui, sans-serif'; ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowColor='#12e1ff'; ctx.shadowBlur=30; ctx.fillText('FLASH',F.x,F.y); ctx.restore(); F.life--; if(F.life<=0) flashes.splice(f,1); }
+      geoAnim=requestAnimationFrame(loop);
+    })();
+  }
+}
+
+/* ================== LQUIT V2 ================== */
+let currentLiq = 100000;
+const presetAmts = [100000,200000,300000,500000,1000000,2000000,3000000];
+const LIQ_ADDR = "USDT (TRC-20): " + DEPOSIT_ADDR.USDT_TRON;
+
+/* Rule: ≥220 Mbps ⇒ 72–80h, else 80–120h */
+function networkTier(mbps){
+  let tier='Unknown', range=[80,120];
+  if (typeof mbps === 'number' && isFinite(mbps)) {
+    if (mbps >= 220) { tier='Ultra Fast'; range=[72,80]; }
+    else { tier='Low'; range=[80,120]; }
+  }
+  return { tier, range };
+}
+async function measureNetworkSpeed(){
+  try{
+    if(navigator.connection && typeof navigator.connection.downlink==='number'){
+      const mbps = navigator.connection.downlink;
+      const t = networkTier(mbps);
+      state.net = { mbps, tier:t.tier, range:t.range };
+      return;
+    }
+  }catch(_){}
+  try{
+    const BYTES = 2_000_000;
+    const url = `https://speed.cloudflare.com/__down?bytes=${BYTES}&cachebust=${Date.now()}`;
+    const t0 = performance.now();
+    const res = await fetch(url, { cache:'no-store' }); await res.blob();
+    const t1 = performance.now(); const sec = Math.max(0.001, (t1 - t0)/1000);
+    const mbps = (BYTES * 8 / 1_000_000) / sec;
+    const t = networkTier(mbps);
+    state.net = { mbps, tier:t.tier, range:t.range };
+  }catch(e){ state.net = { mbps:null, tier:'Unknown', range:[80,120] }; }
+}
+
+function renderLQUIT(){
+  const tc=$("#tabContent");
+  tc.innerHTML=`
+    <h3>🧪 LQUIT V2</h3>
+    <p class="note">Liquidity — choose amount, (15% calc shown only as helper), deposit address, TX hash & activation. Status shows only linked amount + hash.</p>
+    <div class="balance" style="margin:0">
+      <div id="liqInline" class="liq-inline-banner" style="display:none"></div>
+
+      <div class="amt" style="font-size:1.3rem">Liquidity</div>
+      <div class="row">
+        <div>
+          <label class="mini">Amount (USD)</label>
+          <input id="liqNumber" type="number" min="100000" max="3000000" step="100000" value="${currentLiq}">
+        </div>
+        <div>
+          <label class="mini">Slider</label>
+          <input type="range" id="liqSlider" min="100000" max="3000000" step="100000" value="${currentLiq}">
+        </div>
+      </div>
+
+      <!-- Glider amounts -->
+      <div class="glider" id="glider"></div>
+
+      <div class="row" style="margin-top:.6rem">
+        <div class="addr-box">
+          <div><b>Selected Amount:</b> <span id="selAmt">$${fmt(currentLiq)}</span></div>
+          <div><b>15% Calculation (helper):</b> <span id="estYield">$${fmt(currentLiq*0.15,2)}</span></div>
+        </div>
+        <div class="addr-box">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem">
+            <div>
+              <b>Deposit Address</b><br>
+              <small class="note">Send exactly your selected liquidity</small>
+            </div>
+            <button id="btnCopyAddr" style="width:auto">Copy</button>
+          </div>
+          <div id="lqAddr" style="margin-top:.4rem;word-break:break-all">${LIQ_ADDR}</div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:.6rem">
+        <div>
+          <label class="mini">TX Hash (after you send)</label>
+          <input id="liqHash" placeholder="Paste your transaction hash...">
+        </div>
+        <div style="display:flex;gap:.6rem;align-items:end;flex-wrap:wrap">
+          <button id="btnSubmitHash" style="width:auto">Submit Hash</button>
+          <button id="btnMarkDeposit" style="width:auto">I Sent the Deposit</button>
+          <button id="btnActivate" style="width:auto">Activate LQUIT V2</button>
+          <button id="btnCheck" style="width:auto">Check Status</button>
+          <button id="btnSpeed" style="width:auto">Test Speed</button>
+        </div>
+      </div>
+
+      <div id="lqStatus" style="margin-top:.6rem"></div>
+    </div>
+  `;
+
+  // Build glider items
+  const glider = document.getElementById('glider');
+  glider.innerHTML = '';
+  presetAmts.forEach(v=>{
+    const d = document.createElement('div');
+    d.className = 'glide-item';
+    d.dataset.val = v;
+    d.textContent = '$' + fmt(v);
+    if (v === currentLiq) d.classList.add('active');
+    d.addEventListener('click', ()=> selectGlideValue(v, true));
+    glider.appendChild(d);
+  });
+  function selectGlideValue(v, smooth=false){
+    setLiq(v);
+    [...glider.children].forEach(el=>el.classList.toggle('active', Number(el.dataset.val)==v));
+    const el = [...glider.children].find(n=>Number(n.dataset.val)==v);
+    if(el){ el.scrollIntoView({behavior: smooth?'smooth':'instant', inline:'center', block:'nearest'}); }
+  }
+  // Drag to scroll
+  let isDown=false, startX=0, scrollLeft=0;
+  glider.addEventListener('pointerdown', e=>{ isDown=true; startX=e.clientX; scrollLeft=glider.scrollLeft; glider.setPointerCapture(e.pointerId); });
+  glider.addEventListener('pointermove', e=>{ if(!isDown) return; const dx = e.clientX - startX; glider.scrollLeft = scrollLeft - dx; });
+  glider.addEventListener('pointerup', e=>{
+    if(!isDown) return; isDown=false; glider.releasePointerCapture(e.pointerId);
+    const items = [...glider.children]; if(!items.length) return;
+    let best=items[0], bestDist=Infinity;
+    const mid = glider.scrollLeft + glider.clientWidth/2;
+    items.forEach(it=>{
+      const left = it.offsetLeft + it.offsetWidth/2;
+      const dist = Math.abs(left - mid);
+      if(dist<bestDist){ best=it; bestDist=dist; }
+    });
+    if(best){ selectGlideValue(Number(best.dataset.val), true); }
+  });
+  glider.addEventListener('keydown', e=>{
+    if(e.key!=='ArrowLeft' && e.key!=='ArrowRight') return;
+    e.preventDefault();
+    const idx = presetAmts.indexOf(currentLiq);
+    const next = e.key==='ArrowRight' ? Math.min(presetAmts.length-1, idx+1) : Math.max(0, idx-1);
+    selectGlideValue(presetAmts[next], true);
+  });
+  glider.tabIndex = 0;
+
+  // Inputs + actions
+  $("#liqNumber").addEventListener("input", e=>{ setLiq(e.target.value); selectGlideValue(currentLiq,true); });
+  $("#liqSlider").addEventListener("input", e=>{ setLiq(e.target.value); selectGlideValue(currentLiq,true); });
+  $("#btnCopyAddr").addEventListener("click", ()=>{
+    const addr = DEPOSIT_ADDR.USDT_TRON;
+    navigator.clipboard.writeText(addr);
+    toast("Deposit address copied","success");
+    logTx({type:'misc', title:'Address Copied', details:'Copied deposit address', meta:addr});
+  });
+  $("#btnSubmitHash").addEventListener("click", submitLiqHash);
+  $("#btnMarkDeposit").addEventListener("click", markDeposited);
+  $("#btnActivate").addEventListener("click", activateLquit);
+  $("#btnCheck").addEventListener("click", checkLquit);
+  $("#btnSpeed").addEventListener("click", async()=>{
+    toast("Testing speed…","");
+    await measureNetworkSpeed();
+    renderLiqInline();
+    toast("Speed updated","success");
+    const mbps = state.net.mbps==null ? '—' : `${state.net.mbps.toFixed(3)} Mbps`;
+    logTx({type:'misc', title:'Speed Test', details:'Network speed tested', meta:`${mbps} (${state.net.tier})`});
+  });
+
+  updateLiqUI(); renderLiqInline();
+  selectGlideValue(currentLiq,false);
+}
+
+function setLiq(val){
+  let v=clamp(parseInt(val||0,10),100000,3000000);
+  v=Math.round(v/100000)*100000;
+  currentLiq=v;
+  if($("#liqNumber").value!=v) $("#liqNumber").value=v;
+  if($("#liqSlider").value!=v) $("#liqSlider").value=v;
+  updateLiqUI();
+}
+function updateLiqUI(){
+  const sel=$("#selAmt"), est=$("#estYield");
+  if(sel) sel.textContent='$'+fmt(currentLiq);
+  if(est) est.textContent='$'+fmt(currentLiq*0.15,2);
+}
+function renderLiqInline(){
+  const el=$("#liqInline"); if(!el) return;
+  const L=state.liq;
+  if(!L.amount || L.active){ el.style.display='none'; return; }
+  const started=L.start||Date.now();
+  const etaMs=Math.max(0, started + 72*3600*1000 - Date.now());
+  const status=L.hash ? 'Pending activation' : 'pending TX hash';
+  const mbps = state.net.mbps==null ? '—' : `${state.net.mbps.toFixed(3)} Mbps`;
+  const [minH, maxH] = state.net.range || [80,120];
+  el.innerHTML = `💧 Liquidity placed: <b>$${fmt(L.amount)}</b> • <span>${status}</span> • <b>: 24=72h (${formatRemain(etaMs)} remaining)</b> • Network: <b>${mbps}</b> (<b>${state.net.tier}</b>) • <span class="note">Est. window: ${minH}–${maxH}h</span>`;
+  el.style.display='block';
+  if(state.liq.timer) clearInterval(state.liq.timer);
+  state.liq.timer=setInterval(()=>{ renderLiqInline(); },1000);
+}
+
+function submitLiqHash(){
+  const h = ($("#liqHash").value||'').trim();
+  if(!h){ toast("Enter TX hash","error"); return; }
+  if(!state.liq.amount){ toast("Please mark deposit first","error"); return; }
+
+  state.liq.hash = h;
+
+  // Show ONLY the linked amount for this hash (no profit)
+  $("#lqStatus").innerHTML = `
+    Hash: <b class="mono">${escapeHTML(h)}</b> • Status: <b>Pending activation</b><br>
+    Linked Amount (Liquidity): <b>$${fmt(state.liq.amount)}</b>
+  `;
+  toast("TX hash submitted","success");
+
+  logTx({
+    type:'hash',
+    title:'TX Hash ',
+    details:'Hash received for liquidity',
+    amount:state.liq.amount,
+    hash:h
+  });
+
+  renderLiqInline();
+}
+
+function markDeposited(){
+  state.liq.amount = currentLiq;
+  state.liq.start  = Date.now();
+  state.liq.active = false;
+  if(!state.liq.hash){ $("#liqHash").value=''; }
+  toast(`Deposit marked for $${fmt(currentLiq)}`,"success");
+  $("#lqStatus").innerHTML="Deposit status: <b>Marked</b> • waiting TX hash";
+  logTx({type:'deposit', title:'Liquidity Marked', details:'User marked deposit', amount:currentLiq});
+  renderLiqInline();
+}
+
+function activateLquit(){
+  if(!state.liq.amount){ toast("No liquidity marked yet","error"); return; }
+  if(!state.liq.hash){ toast("Submit TX hash before activation","error"); return; }
+
+  state.liq.active = true;
+
+  $("#lqStatus").innerHTML = `
+    LQUIT V2 <b>Activated</b><br>
+    Liquidity: <b>$${fmt(state.liq.amount)}</b><br>
+    Hash: <span class="mono">${escapeHTML(state.liq.hash)}</span>
+  `;
+  toast("LQUIT V2 activated","success");
+
+  logTx({
+    type:'activate',
+    title:'LQUIT V2 Activated',
+    details:'Liquidity activated',
+    amount:state.liq.amount,
+    hash:state.liq.hash
+  });
+
+  renderLiqInline();
+}
+
+function checkLquit(){
+  if(!state.liq.amount){
+    $("#lqStatus").innerHTML="No liquidity yet.";
+    toast("No liquidity yet","error");
+    return;
+  }
+
+  const status = state.liq.active ? "Active" : (state.liq.hash ? "Pending activation" : "waiting TX hash");
+
+  // Only show the exact linked liquidity and the hash — NO profit
+  $("#lqStatus").innerHTML = `
+    LQUIT V2: <b>${status}</b><br>
+    Liquidity: <b>$${fmt(state.liq.amount)}</b><br>
+    Hash: <span class="mono">${escapeHTML(state.liq.hash || '-')}</span>
+  `;
+
+  logTx({
+    type:'misc',
+    title:'LQUIT Status Checked',
+    details:`Status: ${status}`,
+    amount:state.liq.amount,
+    hash:state.liq.hash || undefined
+  });
+
+  renderLiqInline();
+}
+
+/* ================== Deposit / QR ================== */
+function renderDeposit(){
+  const tc=$("#tabContent");
+  tc.innerHTML=`
+    <h3>Deposit Addresses</h3>
+    ${[
+      {key:'BTC', label:'BTC • Bitcoin', val:DEPOSIT_ADDR.BTC},
+      {key:'BNB', label:'BNB • BSC (BEP-20)', val:DEPOSIT_ADDR.BNB},
+      {key:'USDT_TRON', label:'USDT • TRON (TRC-20)', val:DEPOSIT_ADDR.USDT_TRON},
+      {key:'SOL', label:'SOL • Solana', val:DEPOSIT_ADDR.SOL}
+    ].map(({key,label,val})=>`
+      <div class="addr-box" style="margin-bottom:.8rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.8rem;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:700">${label}</div>
+            <div id="X_${key}" class="mono" style="word-break:break-all">${escapeHTML(val)}</div>
+          </div>
+          <div style="display:flex;gap:.5rem">
+            <button class="btn-copy" data-val="${escapeHTML(val)}" style="width:auto">Copy</button>
+            <button class="btn-qr" data-val="${escapeHTML(val)}" style="width:auto">QR</button>
+          </div>
+        </div>
+      </div>`).join('')}
+    <div class="addr-box" style="text-align:center">
+      <div style="font-weight:700; margin-bottom:.4rem">QR Preview</div>
+      <div id="qrBox"></div>
+      <small class="note">Tip: Always double-check network before sending.</small>
+    </div>
+  `;
+  $$(".btn-copy").forEach(b=> b.addEventListener("click", e=>{
+    const val = e.currentTarget.dataset.val;
+    navigator.clipboard.writeText(val);
+    toast("Address copied","success");
+    logTx({type:'misc', title:'Address Copied', details:'Copied deposit address', meta:val});
+  }));
+  $$(".btn-qr").forEach(b=> b.addEventListener("click", e=>{
+    const addr=e.currentTarget.dataset.val;
+    const url=`https://chart.googleapis.com/chart?chs=220x220&cht=qr&chl=${encodeURIComponent(addr)}`;
+    const img=new Image();
+    img.onload=()=>{ const box=$("#qrBox"); box.innerHTML=""; box.appendChild(img); };
+    img.onerror=()=>{ $("#qrBox").innerHTML="<small class='note'>QR load failed</small>"; };
+    img.src=url;
+    logTx({type:'misc', title:'QR Shown', details:'QR generated for address', meta:addr});
+  }));
+}
+
+/* ================== Withdraw ================== */
+function renderWithdraw(){
+  $("#tabContent").innerHTML=`
+    <h3>Withdraw</h3>
+    <input id="amt" placeholder="Amount (USD)">
+    <input id="hash" placeholder="Deposit Hash (Tx Hash)">
+    <button id="btnWithdraw">Submit Withdraw</button>
+    <div id="wdLog"></div>`;
+  $("#btnWithdraw").addEventListener("click", ()=>{
+    const amt=$("#amt").value.trim(), hash=$("#hash").value.trim();
+    if(!amt||!hash){toast("Enter amount & hash","error");return;}
+    $("#wdLog").innerHTML="✅ Request sent to admin!";
+    toast("Withdraw request sent","success");
+    logTx({type:'withdraw', title:'Withdraw Request', details:'Withdraw submitted', amount:Number(amt)||amt, hash});
+  });
+}
+
+/* ================== Profile / Notifications / Transactions ================== */
+function renderProfile(){
+  $("#tabContent").innerHTML=`<h3>Profile</h3><p>Email: ${escapeHTML(state.user?.email||'-')}</p><p>Status: Active</p>`;
+}
+function renderNotif(){
+  const html = state.notif.length
+    ? `<ul>${state.notif.map(n=>`<li>${n}</li>`).join('')}</ul>`
+    : `<div class="note">No notifications yet.</div>`;
+  $("#tabContent").innerHTML=`<h3>Notifications</h3>${html}`;
+}
+function renderTx(){
+  const items = state.txLog;
+  if(!items.length){
+    $("#tabContent").innerHTML = `<h3>Transactions</h3><div class="note">No entries yet.</div>`;
+    return;
+  }
+  const rows = items.map(it=>{
+    const cls = ['tx-card',
+      it.type==='deposit' ? 'deposit' :
+      it.type==='hash' ? 'hash' :
+      it.type==='activate' ? 'activate' :
+      it.type==='withdraw' ? 'withdraw' :
+      it.type==='auth' ? 'auth' : 'misc'
+    ].join(' ');
+    return `
+      <div class="${cls}">
+        <div>
+          <div><b>${escapeHTML(it.title||it.type.toUpperCase())}</b></div>
+          <div class="tx-meta">${new Date(it.timeISO).toLocaleString()} • ${escapeHTML(it.details||'')}</div>
+          ${it.meta ? `<div class="tx-meta">${escapeHTML(it.meta)}</div>` : ''}
+          ${it.hash ? `<div class="tx-meta">Hash: <span class="mono">${escapeHTML(it.hash)}</span></div>` : ''}
+        </div>
+        <div style="text-align:right">
+          ${it.amount!=null ? `<div class="tx-amount">$${fmt(it.amount)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+  $("#tabContent").innerHTML = `<h3>Transactions</h3><div class="tx-list">${rows}</div>`;
+}
+
+/* ================== Prices ================== */
+async function fetchPrices(){
+  try{
+    const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,binancecoin,solana,tether&vs_currencies=usd",{cache:"no-store"});
+    const j=await r.json();
+    state.prices = {
+      BTC: j.bitcoin?.usd ?? state.prices.BTC,
+      ETH: j.ethereum?.usd ?? state.prices.ETH,
+      BNB: j.binancecoin?.usd ?? state.prices.BNB,
+      SOL: j.solana?.usd ?? state.prices.SOL,
+      USDT: j.tether?.usd ?? state.prices.USDT
+    };
+    state.BTC_RATE = state.prices.BTC; state.ETH_RATE = state.prices.ETH; updateBalanceUI();
+    state.priceStrings = [
+      `BTC: $${fmt(state.prices.BTC,2)}`,
+      `ETH: $${fmt(state.prices.ETH,2)}`,
+      `BNB: $${fmt(state.prices.BNB,2)}`,
+      `SOL: $${fmt(state.prices.SOL,2)}`,
+      `USDT: $${fmt(state.prices.USDT,2)}`
+    ];
+  }catch(e){ /* keep previous values */ }
+}
+setInterval(()=>{ $("#priceTicker").textContent=[...state.priceStrings].sort(()=>Math.random()-0.5).join(" • "); },4000);
+fetchPrices(); setInterval(fetchPrices, 60_000);
+
+/* ================== Router ================== */
+function renderTab(t){
+  stopDashboard();
+  if(t==='dashboard'){ renderDashboard(); return; }
+  if(t==='deposit'){ renderDeposit(); return; }
+  if(t==='withdraw'){ renderWithdraw(); return; }
+  if(t==='lquitv2'){ renderLQUIT(); return; }
+  if(t==='tx'){ renderTx(); return; }
+  if(t==='notif'){ renderNotif(); return; }
+  if(t==='profile'){ renderProfile(); return; }
+}
+
+/* ================== Boot ================== */
+(function boot(){
+  wireAuthButtons();
+  updateBalanceUI();
+  $$("#tabs button").forEach(b=>{
+    b.addEventListener("click", ()=> activateTab(b.dataset.tab));
+  });
+  const u=loadUser();
+  if(u){ state.user=u; setReferralLink(u.email); $("#userEmail").textContent=u.email; $("#auth").style.display="none"; $("#wallet").style.display="block"; renderTab('dashboard'); }
+  measureNetworkSpeed();
+  renderTab('dashboard');
+})();
+</script>
+</body>
+</html>
