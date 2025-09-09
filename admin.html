@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Flash Crypto Ema — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c10; --card:#10131a; --muted:#9aa4b2; --text:#e6e9ef;
+    --brand1:#6a5cff; --brand2:#12e1ff;
+    --ok:#00e676; --warn:#ffb74d; --err:#ff5252;
+    --edge:#1c2230;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',sans-serif;background:radial-gradient(1000px 700px at 15% -10%, #141a2b 0%, #0a0c10 60%);color:var(--text)}
+  header{padding:1rem;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+  header h1{margin:0;font-size:1.4rem;color:#fff;text-shadow:0 0 8px rgba(18,225,255,.7),0 0 16px rgba(106,92,255,.45)}
+  .pill{background:linear-gradient(90deg,rgba(106,92,255,.18),rgba(18,225,255,.18));border:1px solid rgba(18,225,255,.4);padding:.4rem .7rem;border-radius:999px;font-weight:700}
+  .wrap{display:grid;grid-template-columns:360px 1fr;gap:1rem;padding:1rem}
+  @media(max-width:1050px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--card);border-radius:16px;border:1px solid rgba(255,255,255,.06);box-shadow:0 14px 40px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.03)}
+  .side{padding:1rem}
+  .main{padding:1rem}
+  input,select,button,textarea{width:100%;padding:.8rem;margin:.35rem 0;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0f1320;color:var(--text);font-size:.95rem}
+  button{cursor:pointer;font-weight:800;background:linear-gradient(90deg,var(--brand1),var(--brand2));box-shadow:0 0 14px rgba(18,225,255,.35),0 0 30px rgba(106,92,255,.25);transition:transform .12s,box-shadow .2s}
+  button:hover{transform:translateY(-1px);box-shadow:0 0 18px rgba(18,225,255,.55),0 0 40px rgba(106,92,255,.38)}
+  .btn-ghost{background:#0f1320;border:1px solid rgba(255,255,255,.08);box-shadow:none}
+  .toolbar{display:flex;gap:.5rem;flex-wrap:wrap}
+  .list{max-height:68vh;overflow:auto;padding-right:.4rem}
+  .user-row{display:flex;gap:.5rem;align-items:center;justify-content:space-between;padding:.6rem;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:#0b0f18;margin:.4rem 0;cursor:pointer}
+  .user-row:hover{border-color:rgba(18,225,255,.45);box-shadow:0 0 14px rgba(18,225,255,.25)}
+  .badge{font-size:.75rem;border-radius:999px;padding:.18rem .5rem;border:1px solid rgba(255,255,255,.18);background:#0f1320;color:#dfe7ff}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+  @media(max-width:900px){.row{grid-template-columns:1fr}}
+  .section{border-top:1px dashed rgba(255,255,255,.08);margin-top:.8rem;padding-top:.6rem}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+  .muted{color:var(--muted)}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin:.6rem 0}
+  .k{background:#0b1320;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:.6rem}
+  .k .big{font-size:1.1rem;font-weight:900}
+  .flex{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+  .right{display:flex;gap:.5rem;margin-left:auto}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Courier New",monospace}
+  .ok{border-color:rgba(0,230,118,.45)!important}
+  .warn{border-color:rgba(255,183,77,.55)!important}
+  .err{border-color:rgba(255,82,82,.55)!important}
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{border-bottom:1px solid rgba(255,255,255,.06);padding:.5rem .3rem;text-align:left}
+  .subtle{font-size:.85rem;color:#c6d0e0}
+  .toast{position:fixed;right:18px;bottom:18px;background:#0f1320;border:1px solid rgba(18,225,255,.35);padding:.7rem 1rem;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚡ Flash Crypto Ema — <span class="pill">Admin Panel</span></h1>
+  <div class="right">
+    <button id="btnExport" class="btn-ghost">Export DB</button>
+    <label class="btn-ghost" style="display:inline-flex;align-items:center;gap:.5rem;cursor:pointer">
+      Import DB <input id="fileImport" type="file" accept="application/json" style="display:none">
+    </label>
+    <button id="btnSeed" class="btn-ghost">Seed Samples</button>
+    <button id="btnClear" class="btn-ghost">Clear DB</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Left: Users / Filters -->
+  <div class="card side">
+    <div class="toolbar">
+      <input id="search" placeholder="Search by email…">
+      <select id="filter">
+        <option value="all">All statuses</option>
+        <option value="lq-await">LQ: Awaiting hash</option>
+        <option value="lq-pending">LQ: Pending activation</option>
+        <option value="lq-active">LQ: Active</option>
+        <option value="wd-pending">Withdraw: Pending approval</option>
+        <option value="wd-approved">Withdraw: Approved</option>
+        <option value="wd-sent">Withdraw: Sent</option>
+      </select>
+      <button id="btnNewUser" style="white-space:nowrap">+ New User</button>
+    </div>
+    <div class="kpi">
+      <div class="k"><div class="subtle">Users</div><div class="big" id="kUsers">0</div></div>
+      <div class="k"><div class="subtle">Total LQ</div><div class="big" id="kLQ">$0</div></div>
+      <div class="k"><div class="subtle">Pending LQ</div><div class="big" id="kLQPending">$0</div></div>
+      <div class="k"><div class="subtle">Pending W/D</div><div class="big" id="kWDPending">0</div></div>
+    </div>
+    <div id="list" class="list"></div>
+  </div>
+
+  <!-- Right: Details -->
+  <div class="card main" id="detail">
+    <div class="muted">Select a user from the list.</div>
+  </div>
+</div>
+
+<div id="toast" class="toast" style="display:none"></div>
+
+<script>
+/* ======== Lightweight DB in localStorage ======== */
+const DB_KEY = 'fce_db_v1'; // { users: { email: {balance, liq, withdraw, tx, notif, createdAt, updatedAt, config} } }
+const $ = (s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const fmt = (n,fd=0)=> Number(n||0).toLocaleString(undefined,{maximumFractionDigits:fd});
+const nowISO = ()=> new Date().toISOString();
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',1800); }
+
+function loadDB(){ try{ return JSON.parse(localStorage.getItem(DB_KEY)||'{"users":{}}'); }catch{ return {users:{}}; } }
+function saveDB(db){ localStorage.setItem(DB_KEY, JSON.stringify(db)); window.dispatchEvent(new StorageEvent('storage',{key:DB_KEY,newValue:JSON.stringify(db)})); }
+
+/* Ensure structure for a user */
+function ensureUser(db, email){
+  db.users[email] ??= {
+    email, balance:100000,
+    liq:{amount:0, hash:null, start:0, active:false},
+    withdraw:{amount:null, hash:null, approved:false, address:null, sent:false, created:0},
+    tx:[], notif:[], config:{tier:'Standard', eta:[80,120]},
+    createdAt: nowISO(), updatedAt: nowISO()
+  };
+  return db.users[email];
+}
+
+/* Derived statuses */
+function lqStatus(u){
+  const L=u.liq||{}; if(!L.amount) return 'none';
+  if(L.amount && !L.hash) return 'await';
+  if(L.amount && L.hash && !L.active) return 'pending';
+  if(L.active) return 'active';
+  return 'none';
+}
+function wdStatus(u){
+  const W=u.withdraw||{};
+  if(!W.amount) return 'none';
+  if(W.amount && !W.approved) return 'pending';
+  if(W.approved && !W.sent) return 'approved';
+  if(W.sent) return 'sent';
+  return 'none';
+}
+
+/* ======== UI: List / Filters ======== */
+let SELECTED = null;
+function refreshList(){
+  const db = loadDB();
+  const q = ($("#search").value||'').trim().toLowerCase();
+  const f = $("#filter").value;
+  const users = Object.values(db.users);
+  // KPIs
+  $("#kUsers").textContent = fmt(users.length);
+  $("#kLQ").textContent = '$'+fmt(users.reduce((a,u)=>a+(u.liq?.amount||0),0));
+  $("#kLQPending").textContent = '$'+fmt(users.filter(u=>lqStatus(u)==='pending').reduce((a,u)=>a+(u.liq?.amount||0),0));
+  $("#kWDPending").textContent = fmt(users.filter(u=>wdStatus(u)==='pending').length);
+
+  const list = $("#list"); list.innerHTML='';
+  users
+    .filter(u=>!q || (u.email||'').toLowerCase().includes(q))
+    .filter(u=>{
+      if(f==='all') return true;
+      if(f==='lq-await') return lqStatus(u)==='await';
+      if(f==='lq-pending') return lqStatus(u)==='pending';
+      if(f==='lq-active') return lqStatus(u)==='active';
+      if(f==='wd-pending') return wdStatus(u)==='pending';
+      if(f==='wd-approved') return wdStatus(u)==='approved';
+      if(f==='wd-sent') return wdStatus(u)==='sent';
+      return true;
+    })
+    .sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''))
+    .forEach(u=>{
+      const row = document.createElement('div'); row.className='user-row';
+      const lq = lqStatus(u), wd = wdStatus(u);
+      row.innerHTML = `
+        <div>
+          <div style="font-weight:800">${u.email||'-'}</div>
+          <div class="subtle">Balance: $${fmt(u.balance)} • LQ: $${fmt(u.liq?.amount||0)} ${u.liq?.hash?`• <span class="mono">${u.liq.hash.slice(0,8)}…</span>`:''}</div>
+        </div>
+        <div class="flex">
+          ${lq!=='none'?`<span class="badge ${lq==='active'?'ok':(lq==='pending'?'warn':'')}">LQ:${lq}</span>`:''}
+          ${wd!=='none'?`<span class="badge ${wd==='sent'?'ok':(wd==='approved'?'warn':'')}">WD:${wd}</span>`:''}
+        </div>`;
+      row.addEventListener('click', ()=>{ SELECTED=u.email; renderDetail(); });
+      list.appendChild(row);
+    });
+
+  if(!users.length){ list.innerHTML = `<div class="muted">No users yet. Click <b>+ New User</b> to add.</div>`; }
+}
+
+/* ======== UI: Detail Panel ======== */
+function renderDetail(){
+  const db = loadDB(); const u = db.users[SELECTED];
+  const d = $("#detail");
+  if(!u){ d.innerHTML=`<div class="muted">Select a user from the list.</div>`; return; }
+
+  const L = u.liq||{}, W = u.withdraw||{};
+  const eta=(hrs)=>`${Math.max(0,hrs)}h`;
+  const lqStat = lqStatus(u), wdStat = wdStatus(u);
+
+  d.innerHTML = `
+    <div class="flex" style="justify-content:space-between">
+      <div>
+        <div style="font-weight:900;font-size:1.1rem">${u.email}</div>
+        <div class="subtle">Created: ${new Date(u.createdAt).toLocaleString()} • Updated: ${new Date(u.updatedAt).toLocaleString()}</div>
+      </div>
+      <div class="flex">
+        <button class="btn-ghost" id="btnMsg">Send Notification</button>
+        <button class="btn-ghost" id="btnSaveAll">Save</button>
+      </div>
+    </div>
+
+    <div class="row section">
+      <div>
+        <h3 style="margin:.2rem 0">Balance</h3>
+        <div class="row">
+          <div><label>Add / Subtract</label><input id="balDelta" type="number" placeholder="+1000 or -500"></div>
+          <div><label>New Balance</label><input id="balNew" type="number" value="${u.balance}"></div>
+        </div>
+        <div class="flex">
+          <button id="btnApplyDelta" style="width:auto">Apply Delta</button>
+          <button id="btnSetBalance" style="width:auto">Set Balance</button>
+          <button id="btnCreditByHash" class="btn-ghost" style="width:auto">Credit by Hash</button>
+        </div>
+      </div>
+
+      <div>
+        <h3 style="margin:.2rem 0">Per-user Config</h3>
+        <div class="row">
+          <div>
+            <label>Network Tier</label>
+            <select id="cfgTier">
+              <option ${u.config?.tier==='Ultra Fast'?'selected':''}>Ultra Fast</option>
+              <option ${u.config?.tier==='Standard'?'selected':''}>Standard</option>
+            </select>
+          </div>
+          <div>
+            <label>ETA Window (min–max hours)</label>
+            <div class="row">
+              <input id="cfgEtaMin" type="number" value="${u.config?.eta?.[0]??80}">
+              <input id="cfgEtaMax" type="number" value="${u.config?.eta?.[1]??120}">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 style="margin:.2rem 0">Liquidity</h3>
+      <div class="row">
+        <div><label>Amount (USD)</label><input id="lqAmount" type="number" value="${L.amount||0}"></div>
+        <div><label>TX Hash</label><input id="lqHash" value="${L.hash??''}" placeholder="paste hash"></div>
+      </div>
+      <div class="row">
+        <div><label>Start (ISO)</label><input id="lqStart" value="${L.start?new Date(L.start).toISOString():''}" placeholder="leave empty = now"></div>
+        <div><label>Status</label>
+          <select id="lqStatusSel">
+            <option value="none" ${lqStat==='none'?'selected':''}>None</option>
+            <option value="await" ${lqStat==='await'?'selected':''}>Awaiting TX hash</option>
+            <option value="pending" ${lqStat==='pending'?'selected':''}>Pending activation</option>
+            <option value="active" ${lqStat==='active'?'selected':''}>Active</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex">
+        <button id="btnLqSet" style="width:auto">Save Liquidity</button>
+        <button id="btnLqApprove" class="btn-ghost" style="width:auto">Mark Pending → (approve hash)</button>
+        <button id="btnLqActivate" class="btn-ghost" style="width:auto">Activate</button>
+        <button id="btnLqClear" class="btn-ghost" style="width:auto">Clear</button>
+      </div>
+      <div class="subtle" style="margin-top:.3rem">
+        ETA: min ${eta((u.config?.eta?.[0]??80))} – max ${eta((u.config?.eta?.[1]??120))} • Start: ${L.start?new Date(L.start).toLocaleString():'—'}
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 style="margin:.2rem 0">Withdraw</h3>
+      <div class="row">
+        <div><label>Amount (USD)</label><input id="wdAmount" type="number" value="${W.amount??''}" placeholder="0"></div>
+        <div><label>Funding TX Hash</label><input id="wdHash" value="${W.hash??''}" placeholder="hash that user provided"></div>
+      </div>
+      <div class="row">
+        <div><label>Address</label><input id="wdAddr" value="${W.address??''}" placeholder="destination address"></div>
+        <div>
+          <label>Status</label>
+          <select id="wdStatusSel">
+            <option value="none" ${wdStat==='none'?'selected':''}>None</option>
+            <option value="pending" ${wdStat==='pending'?'selected':''}>Pending approval</option>
+            <option value="approved" ${wdStat==='approved'?'selected':''}>Approved (enter address)</option>
+            <option value="sent" ${wdStat==='sent'?'selected':''}>Sent</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex">
+        <button id="btnWdSave" style="width:auto">Save Withdraw</button>
+        <button id="btnWdApprove" class="btn-ghost" style="width:auto">Approve</button>
+        <button id="btnWdSend" class="btn-ghost" style="width:auto">Mark as Sent</button>
+        <button id="btnWdClear" class="btn-ghost" style="width:auto">Clear</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 style="margin:.2rem 0">Transactions</h3>
+      ${u.tx?.length?`
+        <table class="table">
+          <thead><tr><th>Time</th><th>Type</th><th>Title</th><th>Amount</th><th>Hash</th><th>Meta</th></tr></thead>
+          <tbody>
+          ${u.tx.map(t=>`
+            <tr>
+              <td>${new Date(t.timeISO||t.time||Date.now()).toLocaleString()}</td>
+              <td>${t.type||'-'}</td>
+              <td>${t.title||'-'}</td>
+              <td>${t.amount!=null?'$'+fmt(t.amount):''}</td>
+              <td class="mono">${t.hash?String(t.hash).slice(0,10)+'…':''}</td>
+              <td>${t.meta||''}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      `:`<div class="muted">No transactions yet.</div>`}
+    </div>
+  `;
+
+  // Wire buttons
+  $("#btnSaveAll").onclick = ()=>{ saveDB(db); toast('Saved'); refreshList(); };
+  $("#btnMsg").onclick = ()=>{
+    const msg = prompt("Message to user (will appear as app notification):","");
+    if(!msg) return;
+    u.notif ??= []; u.notif.unshift(`${new Date().toLocaleString()} — ${msg}`);
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'admin',title:'Admin Message',details:msg});
+    u.updatedAt = nowISO(); saveDB(db); toast('Notification sent'); refreshList(); renderDetail();
+  };
+
+  // Balance
+  $("#btnApplyDelta").onclick = ()=>{
+    const d = parseFloat($("#balDelta").value||0)||0;
+    u.balance = Math.max(0,(u.balance||0)+d);
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'balance',title:'Admin Balance Delta',amount:d,meta:`new=$${fmt(u.balance)}`});
+    u.updatedAt = nowISO(); saveDB(db); toast('Delta applied'); refreshList(); renderDetail();
+  };
+  $("#btnSetBalance").onclick = ()=>{
+    const nv = parseFloat($("#balNew").value||0)||0;
+    u.balance = Math.max(0,nv);
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'balance',title:'Admin Set Balance',amount:nv,meta:'set absolute'});
+    u.updatedAt = nowISO(); saveDB(db); toast('Balance set'); refreshList(); renderDetail();
+  };
+  $("#btnCreditByHash").onclick = ()=>{
+    const h = prompt("Enter deposit hash to credit balance:","");
+    const a = parseFloat(prompt("Amount to credit (USD):","0")||"0");
+    if(!h || !a) return;
+    u.balance = (u.balance||0)+a;
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'credit',title:'Credit by Hash',amount:a,hash:h});
+    u.updatedAt = nowISO(); saveDB(db); toast('Credited'); refreshList(); renderDetail();
+  };
+
+  // Config
+  $("#cfgTier").onchange = e=>{ u.config=u.config||{}; u.config.tier=e.target.value; u.updatedAt=nowISO(); saveDB(db); };
+  $("#cfgEtaMin").onchange = e=>{ u.config=u.config||{}; u.config.eta=[parseInt(e.target.value||80), u.config.eta?.[1]??120]; u.updatedAt=nowISO(); saveDB(db); renderDetail(); };
+  $("#cfgEtaMax").onchange = e=>{ u.config=u.config||{}; u.config.eta=[ u.config.eta?.[0]??80, parseInt(e.target.value||120)]; u.updatedAt=nowISO(); saveDB(db); renderDetail(); };
+
+  // Liquidity actions
+  $("#btnLqSet").onclick = ()=>{
+    const amount = parseFloat($("#lqAmount").value||0)||0;
+    const hash = ($("#lqHash").value||'').trim()||null;
+    const start = ($("#lqStart").value||'').trim(); const startMs = start?Date.parse(start):Date.now();
+    const sel = $("#lqStatusSel").value;
+    u.liq = { amount, hash, start:startMs, active:(sel==='active') };
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'liquidity',title:'Admin Set Liquidity',amount,hash,meta:`status=${sel}`});
+    u.updatedAt = nowISO(); saveDB(db); toast('Liquidity saved'); refreshList(); renderDetail();
+  };
+  $("#btnLqApprove").onclick = ()=>{
+    const amount = parseFloat($("#lqAmount").value||0)||0;
+    const hash = ($("#lqHash").value||'').trim();
+    if(!amount || !hash){ toast('Set amount & hash first'); return; }
+    u.liq ??= {}; u.liq.amount=amount; u.liq.hash=hash; u.liq.start = u.liq.start||Date.now(); u.liq.active=false;
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'liquidity',title:'Admin Approved Hash',amount,hash});
+    u.updatedAt = nowISO(); saveDB(db); toast('Marked Pending (approved hash)'); refreshList(); renderDetail();
+  };
+  $("#btnLqActivate").onclick = ()=>{
+    if(!u.liq?.hash){ toast('No hash set'); return; }
+    u.liq.active = true;
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'liquidity',title:'Admin Activated LQ',amount:u.liq.amount,hash:u.liq.hash});
+    u.updatedAt = nowISO(); saveDB(db); toast('Liquidity activated'); refreshList(); renderDetail();
+  };
+  $("#btnLqClear").onclick = ()=>{
+    u.liq = {amount:0,hash:null,start:0,active:false};
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'liquidity',title:'Admin Cleared LQ'});
+    u.updatedAt = nowISO(); saveDB(db); toast('Liquidity cleared'); refreshList(); renderDetail();
+  };
+
+  // Withdraw actions
+  $("#btnWdSave").onclick = ()=>{
+    const amount = parseFloat($("#wdAmount").value||0)||0;
+    const hash = ($("#wdHash").value||'').trim()||null;
+    const addr = ($("#wdAddr").value||'').trim()||null;
+    const sel = $("#wdStatusSel").value;
+    u.withdraw = {
+      amount: amount||null,
+      hash,
+      address: addr,
+      approved: sel==='approved'||sel==='sent',
+      sent: sel==='sent',
+      created: u.withdraw?.created || (amount?Date.now():0)
+    };
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'withdraw',title:'Admin Set Withdraw',amount,hash,meta:`status=${sel}`});
+    u.updatedAt = nowISO(); saveDB(db); toast('Withdraw saved'); refreshList(); renderDetail();
+  };
+  $("#btnWdApprove").onclick = ()=>{
+    if(!u.withdraw?.amount || !u.withdraw?.hash){ toast('Set amount & hash first'); return; }
+    u.withdraw.approved = true; u.withdraw.created = u.withdraw.created || Date.now();
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'withdraw',title:'Admin Approved WD',amount:u.withdraw.amount,hash:u.withdraw.hash});
+    u.updatedAt = nowISO(); saveDB(db); toast('Withdrawal approved'); refreshList(); renderDetail();
+  };
+  $("#btnWdSend").onclick = ()=>{
+    if(!u.withdraw?.approved){ toast('Approve first'); return; }
+    if(!(u.withdraw?.address)||String(u.withdraw.address).length<16){ toast('Enter valid address'); return; }
+    u.withdraw.sent = true;
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'withdraw',title:'Admin Marked Sent',amount:u.withdraw.amount,hash:u.withdraw.hash,meta:`to ${u.withdraw.address}`});
+    u.updatedAt = nowISO(); saveDB(db); toast('Marked as sent'); refreshList(); renderDetail();
+  };
+  $("#btnWdClear").onclick = ()=>{
+    u.withdraw = {amount:null,hash:null,approved:false,address:null,sent:false,created:0};
+    u.tx ??= []; u.tx.unshift({timeISO:nowISO(),type:'withdraw',title:'Admin Cleared WD'});
+    u.updatedAt = nowISO(); saveDB(db); toast('Withdraw cleared'); refreshList(); renderDetail();
+  };
+}
+
+/* ======== Header buttons ======== */
+$("#btnNewUser").onclick = ()=>{
+  const email = prompt("User email:","user@example.com"); if(!email) return;
+  const db=loadDB(); ensureUser(db,email); db.users[email].updatedAt=nowISO(); saveDB(db); toast('User added'); refreshList();
+};
+$("#search").oninput = refreshList;
+$("#filter").onchange = refreshList;
+
+$("#btnExport").onclick = ()=>{
+  const dbStr = localStorage.getItem(DB_KEY)||'{}';
+  const blob = new Blob([dbStr],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fce_admin_db.json'; a.click();
+};
+$("#fileImport").onchange = (e)=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{ try{ const obj=JSON.parse(r.result); if(!obj.users) throw new Error('Invalid DB'); localStorage.setItem(DB_KEY, JSON.stringify(obj)); toast('DB imported'); refreshList(); }catch{ toast('Import error'); } };
+  r.readAsText(f);
+};
+$("#btnClear").onclick = ()=>{
+  if(confirm('Clear entire admin DB?')){ localStorage.removeItem(DB_KEY); toast('DB cleared'); refreshList(); $("#detail").innerHTML='<div class="muted">Select a user from the list.</div>'; }
+};
+$("#btnSeed").onclick = ()=>{
+  const db = loadDB();
+  const emails = ['alice@demo.com','bob@demo.com','carol@demo.com'];
+  emails.forEach(e=>{
+    const u = ensureUser(db,e);
+    u.balance = 100000 + Math.floor(Math.random()*50000);
+    if(Math.random()<.6){ u.liq={amount: [100000,200000,300000,500000][Math.floor(Math.random()*4)], hash: Math.random()<.5?('0x'+Math.random().toString(16).slice(2,10)) : null, start: Date.now()-Math.floor(Math.random()*86400000), active: Math.random()<.4}; }
+    if(Math.random()<.5){ u.withdraw={amount:[500,1000,2500][Math.floor(Math.random()*3)], hash:'0x'+Math.random().toString(16).slice(2,10), approved:Math.random()<.5, address:Math.random()<.3?'TJ...demoADDR...SPW':null, sent:Math.random()<.2, created:Date.now()-600000}; }
+    u.tx = u.tx||[]; u.notif = u.notif||[];
+    u.updatedAt = nowISO();
+  });
+  saveDB(db); toast('Sample users added'); refreshList();
+};
+
+/* ======== Boot ======== */
+refreshList();
+window.addEventListener('storage', (e)=>{ if(e.key===DB_KEY){ refreshList(); if(SELECTED){ renderDetail(); } }});
+</script>
+</body>
+</html>
